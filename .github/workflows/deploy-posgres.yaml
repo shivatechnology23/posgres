@@ -1,0 +1,40 @@
+name: Deploy PostgreSQL
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install expect
+        run: sudo apt-get update && sudo apt-get install -y expect
+
+      - name: Install PostgreSQL via SSH
+        run: |
+          expect << EOF
+          spawn ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@13.87.187.147
+          expect "password:"
+          send "${{ secrets.SSH_PASSWORD }}\r"
+          expect "$ "
+          send "sudo apt update\r"
+          expect "password for ${{ secrets.SSH_USERNAME }}:"
+          send "${{ secrets.SSH_PASSWORD }}\r"
+          expect "$ "
+          send "sudo apt install -y postgresql postgresql-contrib\r"
+          expect "$ "
+          send "sudo systemctl start postgresql\r"
+          expect "$ "
+          send "sudo systemctl enable postgresql\r"
+          expect "$ "
+          send "sudo -u postgres psql -c \"ALTER USER postgres PASSWORD 'Posgres123456';\"\r"
+          expect "$ "
+          send "exit\r"
+          expect eof
+          EOF
